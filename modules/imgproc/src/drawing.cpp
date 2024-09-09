@@ -2366,12 +2366,14 @@ Size getTextSize( const String& text, int fontFace, double fontScale, int thickn
 {
     Size size;
     double view_x = 0;
+    int y_max = std::numeric_limits<int>::min();
+    int y_min = std::numeric_limits<int>::max();
     const char **faces = cv::g_HersheyGlyphs;
     const int* ascii = getFontData(fontFace);
 
     int base_line = (ascii[0] & 15);
-    int cap_line = (ascii[0] >> 4) & 15;
-    size.height = cvRound((cap_line + base_line)*fontScale + (thickness+1)/2);
+    //int cap_line = (ascii[0] >> 4) & 15;
+    //size.height = cvRound((cap_line + base_line)*fontScale + (thickness+1)/2);
 
     for( int i = 0; i < (int)text.size(); i++ )
     {
@@ -2384,9 +2386,23 @@ Size getTextSize( const String& text, int fontFace, double fontScale, int thickn
         p.x = (uchar)ptr[0] - 'R';
         p.y = (uchar)ptr[1] - 'R';
         view_x += (p.y - p.x)*fontScale;
+
+        for ( int i = 3; i < sizeof(faces[ascii[(c-' ')+1]]); i++ )
+        {
+            int y = (uchar)ptr[i] - 'R';
+            if ( y < y_min )
+                y_min = y;
+
+            if ( y > y_max )
+                y_max = y;
+            
+            if ( (i + 1) < sizeof(faces[ascii[(c-' ')+1]]) && ptr[i+1] == ' ' )
+                i += 1;
+        }
     }
 
     size.width = cvRound(view_x + thickness);
+    size.height = cvRound((y_max - y_min)*fontScale + thickness);
     if( _base_line )
         *_base_line = cvRound(base_line*fontScale + thickness*0.5);
     return size;
